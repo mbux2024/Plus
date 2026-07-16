@@ -16,8 +16,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // MPV Android library (io.github.abdallahmehiz:mpv-android-lib)
-        maven { url = uri("https://jitpack.io") }
     }
 }
 
