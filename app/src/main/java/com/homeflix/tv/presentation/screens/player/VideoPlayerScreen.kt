@@ -1,70 +1,98 @@
 package com.homeflix.tv.presentation.screens.player
 
-import androidx.compose.foundation.layout.fillMaxSize
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
-import com.homeflix.tv.presentation.components.VideoPlayer
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 
-
+/**
+ * Video Player screen that plays a direct stream URL.
+ * Accepts a resolved stream URL from the debrid service or addon.
+ * 
+ * The existing Netflix-style custom controls from the UI components layer
+ * (VideoPlayer.kt) can be integrated here once the old ViewModel dependencies
+ * are removed.
+ */
 @UnstableApi
 @Composable
 fun VideoPlayerScreen(
-    mediaId: Int,
-    startTime: Long = 0L,
-    forceStartFromBeginning: Boolean = false,
-    onNavigateBack: () -> Unit,
-    onNavigateToEpisode: ((Int) -> Unit)? = null,
-    viewModel: VideoPlayerViewModel = hiltViewModel()
+    streamUrl: String,
+    title: String = "",
+    tmdbId: Int = 0,
+    onNavigateBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
-    LaunchedEffect(mediaId, startTime) {
-        val startTimeSeconds = startTime / 1000 // Convert ms to seconds for ViewModel
-        viewModel.loadMedia(mediaId, startTimeSeconds)
+    val context = LocalContext.current
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    if (streamUrl.isBlank()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No stream URL provided", color = Color.White)
+        }
+        return
     }
-    
-    when (val state = uiState) {
-        is VideoPlayerUiState.Loading -> {
-            // Show loading indicator
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            val mediaItem = MediaItem.fromUri(Uri.parse(streamUrl))
+            setMediaItem(mediaItem)
+            prepare()
+            playWhenReady = true
         }
-        
-        is VideoPlayerUiState.Error -> {
-            // Show error message and navigate back
-            LaunchedEffect(state.message) {
-                onNavigateBack()
-            }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
         }
-        
-        is VideoPlayerUiState.Success -> {
-            // CRITICAL FIX: Use the provided startTime parameter directly
-            // Don't override with savedProgressSeconds from ViewModel
-            // The startTime from navigation already contains the correct resume position
-            val actualStartTime = if (startTime > 0) {
-                startTime // Use provided startTime (already in milliseconds)
-            } else if (state.savedProgressSeconds != null) {
-                state.savedProgressSeconds * 1000 // Fallback to saved progress
-            } else {
-                0L // Start from beginning
-            }
-            
-            VideoPlayer(
-                media = state.media,
-                isVisible = true,
-                onClose = onNavigateBack,
-                startTime = actualStartTime,
-                forceStartFromBeginning = forceStartFromBeginning,
-                onProgress = { currentTime, duration ->
-                    viewModel.updateProgress(currentTime, duration)
-                },
-                onPlayNext = { nextEpisode ->
-                    // Navigate to next episode
-                    onNavigateToEpisode?.invoke(nextEpisode.id)
-                },
-                mediaRepository = null, // VideoPlayer will get it from Hilt EntryPoint
-                modifier = Modifier.fillMaxSize()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    player = exoPlayer
+                    useController = true
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Color(0xFFE50914),
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+
+        errorMessage?.let { error ->
+            Text(
+                text = error,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp)
             )
         }
     }

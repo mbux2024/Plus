@@ -3,384 +3,375 @@ package com.homeflix.tv.presentation.screens.details
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.homeflix.tv.presentation.components.BackgroundVideo
-import com.homeflix.tv.presentation.components.CertBadge
-import com.homeflix.tv.presentation.components.HeroActionButton
-import com.homeflix.tv.presentation.components.MediaRow
-import com.homeflix.tv.presentation.components.QualityBadge
+import com.homeflix.tv.domain.model.*
 import com.homeflix.tv.presentation.navigation.Screen
-import com.homeflix.tv.presentation.theme.*
-import com.homeflix.tv.util.ApiUtils
-import kotlinx.coroutines.delay
 
-/**
- * MOVIE DETAILS - Prime Video style full-screen info page.
- *
- * Full-bleed backdrop that fades into an auto-playing muted preview clip,
- * strong left gradient, metadata badges, resume-aware Play action and a
- * "More like this" row.
- */
-@UnstableApi
+private val NetflixRed = Color(0xFFE50914)
+
 @Composable
 fun DetailsScreen(
-    mediaId: String,
-    navController: NavController,
+    navController: NavHostController,
     viewModel: DetailsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val streamState by viewModel.streamState.collectAsState()
     val isInMyList by viewModel.isInMyList.collectAsState()
-    val similar by viewModel.similar.collectAsState()
 
-    val playFocusRequester = remember { FocusRequester() }
-
-    // Reload progress when returning from the player
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow.collectAsState()
-    var resumeCount by remember { mutableIntStateOf(0) }
-    LaunchedEffect(lifecycleState) {
-        if (lifecycleState == Lifecycle.State.RESUMED) {
-            resumeCount++
-            if (resumeCount > 1) viewModel.loadMediaDetails(mediaId)
+    // Navigate to player when stream is ready
+    LaunchedEffect(streamState) {
+        when (val state = streamState) {
+            is StreamState.Ready -> {
+                val detail = (uiState as? DetailsUiState.Success)?.detail
+                navController.navigate(
+                    Screen.VideoPlayer.createRoute(
+                        streamUrl = state.url,
+                        title = detail?.media?.title ?: "",
+                        tmdbId = detail?.media?.id ?: 0
+                    )
+                )
+                viewModel.resetStreamState()
+            }
+            is StreamState.TrailerReady -> {
+                navController.navigate(
+                    Screen.VideoPlayer.createRoute(
+                        streamUrl = state.url,
+                        title = "Trailer: ${state.title}"
+                    )
+                )
+                viewModel.resetStreamState()
+            }
+            else -> {}
         }
-    }
-
-    LaunchedEffect(mediaId) {
-        viewModel.loadMediaDetails(mediaId)
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PrimeBg)
+            .background(Color(0xFF141414))
     ) {
         when (val state = uiState) {
-            is DetailsUiState.Success -> {
-                val media = state.media
-
-                LaunchedEffect(media.id) {
-                    delay(400)
-                    try {
-                        playFocusRequester.requestFocus()
-                    } catch (_: Exception) {
-                    }
-                }
-
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(560.dp)
-                        ) {
-                            // Backdrop -> auto-playing muted preview
-                            BackgroundVideo(
-                                backdropUrl = ApiUtils.getBackdropUrl(media),
-                                videoUrl = ApiUtils.getPreviewClipUrl(media.id),
-                                startDelayMs = 2200,
-                                contentDescription = media.title
-                            )
-
-                            // Prime gradients: strong left panel + fade to page bg
-                            Box(
-                                Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(
-                                                PrimeBgDeep.copy(alpha = 0.96f),
-                                                PrimeBgDeep.copy(alpha = 0.6f),
-                                                Color.Transparent
-                                            ),
-                                            endX = 1500f
-                                        )
-                                    )
-                            )
-                            Box(
-                                Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(Color.Transparent, PrimeBg),
-                                            startY = 850f
-                                        )
-                                    )
-                            )
-
-                            // Info column
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(start = 56.dp, bottom = 40.dp, end = 480.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                // Logo or title
-                                val logoUrl = ApiUtils.getLogoUrl(media)
-                                var logoOk by remember(media.id) { mutableStateOf(logoUrl != null) }
-                                if (logoOk && logoUrl != null) {
-                                    AsyncImage(
-                                        model = coil.request.ImageRequest.Builder(LocalContext.current)
-                                            .data(logoUrl)
-                                            .memoryCacheKey("logo_${media.id}")
-                                            .diskCacheKey("logo_${media.id}")
-                                            .build(),
-                                        contentDescription = media.title,
-                                        modifier = Modifier
-                                            .heightIn(max = 120.dp)
-                                            .widthIn(max = 440.dp),
-                                        contentScale = ContentScale.Fit,
-                                        onError = { logoOk = false }
-                                    )
-                                } else {
-                                    Text(
-                                        text = media.title,
-                                        style = MaterialTheme.typography.displaySmall.copy(
-                                            fontWeight = FontWeight.Black,
-                                            color = TextPrimary
-                                        ),
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                media.tagline?.takeIf { it.isNotBlank() }?.let {
-                                    Text(
-                                        text = it,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            color = Color(0xFF4FD8CE),
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    )
-                                }
-
-                                // Metadata badges row
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (media.rating > 0) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text("★", color = RatingGold, style = MaterialTheme.typography.titleSmall)
-                                            Text(
-                                                String.format("%.1f", media.rating),
-                                                color = TextPrimary,
-                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-                                            )
-                                            if (media.voteCount > 0) {
-                                                Text(
-                                                    "(${media.voteCount})",
-                                                    color = PrimeTextDim,
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            }
-                                        }
-                                    }
-                                    media.year?.let {
-                                        Text(it.toString(), color = PrimeTextDim, style = MaterialTheme.typography.titleSmall)
-                                    }
-                                    val mins = media.runtime ?: (media.duration / 60)
-                                    if (mins > 0) {
-                                        Text(
-                                            "${mins / 60}h ${mins % 60}m",
-                                            color = PrimeTextDim,
-                                            style = MaterialTheme.typography.titleSmall
-                                        )
-                                    }
-                                    CertBadge(media.certification ?: "PG-13")
-                                    QualityBadge(media.quality)
-                                }
-
-                                if (media.genreNames.isNotEmpty()) {
-                                    Text(
-                                        media.genreNames.take(4).joinToString("  •  "),
-                                        color = PrimeTextDim,
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                }
-
-                                // Description
-                                media.description?.let { desc ->
-                                    Text(
-                                        text = desc,
-                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                            color = TextPrimary.copy(alpha = 0.92f),
-                                            lineHeight = 24.sp
-                                        ),
-                                        maxLines = 4,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                // Director / cast (Prime shows these under the synopsis)
-                                if (media.director.isNotEmpty()) {
-                                    MetaLine("Director", media.director.take(2).joinToString(", "))
-                                }
-                                val castLine = media.cast.ifEmpty { media.stars }
-                                if (castLine.isNotEmpty()) {
-                                    MetaLine("Starring", castLine.take(4).joinToString(", "))
-                                }
-
-                                // Resume progress
-                                state.watchProgress?.let { progress ->
-                                    if (progress > 0.01f && progress < 0.97f) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                        ) {
-                                            LinearProgressIndicator(
-                                                progress = { progress },
-                                                color = PrimeBlue,
-                                                trackColor = PrimeSurface,
-                                                modifier = Modifier
-                                                    .width(220.dp)
-                                                    .height(4.dp)
-                                            )
-                                            Text(
-                                                "${(progress * 100).toInt()}% watched",
-                                                color = PrimeTextDim,
-                                                style = MaterialTheme.typography.labelMedium
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Actions
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.padding(top = 4.dp)
-                                ) {
-                                    val canResume = (state.progressSeconds ?: 0L) > 30 &&
-                                        (state.watchProgress ?: 0f) < 0.97f
-                                    HeroActionButton(
-                                        label = if (canResume) "Resume" else "Play",
-                                        icon = { Icon(Icons.Default.PlayArrow, null, Modifier.size(26.dp)) },
-                                        primary = true,
-                                        focusRequester = playFocusRequester,
-                                        onClick = {
-                                            val start = if (canResume) (state.progressSeconds ?: 0L) * 1000 else 0L
-                                            navController.navigate(
-                                                Screen.VideoPlayer.createRoute(media.id, startTime = start)
-                                            )
-                                        }
-                                    )
-                                    if (canResume) {
-                                        HeroActionButton(
-                                            label = "Start Over",
-                                            icon = { Icon(Icons.Default.Refresh, null, Modifier.size(20.dp)) },
-                                            primary = false,
-                                            onClick = {
-                                                navController.navigate(
-                                                    Screen.VideoPlayer.createRoute(
-                                                        media.id,
-                                                        forceStartFromBeginning = true
-                                                    )
-                                                )
-                                            }
-                                        )
-                                    }
-                                    HeroActionButton(
-                                        label = if (isInMyList) "In My List" else "My List",
-                                        icon = {
-                                            Icon(
-                                                if (isInMyList) Icons.Default.Check else Icons.Default.Add,
-                                                null,
-                                                Modifier.size(20.dp)
-                                            )
-                                        },
-                                        primary = false,
-                                        onClick = { viewModel.addToMyList(media.id.toString()) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // More like this
-                    if (similar.isNotEmpty()) {
-                        item {
-                            MediaRow(
-                                title = "More like this",
-                                mediaList = similar,
-                                onMediaClick = { m ->
-                                    navController.navigate(Screen.Details.createRoute(m.id.toString()))
-                                },
-                                modifier = Modifier.padding(top = 8.dp, bottom = 48.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
             is DetailsUiState.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimeBlue, strokeWidth = 4.dp)
-                }
+                CircularProgressIndicator(
+                    color = NetflixRed,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
-
             is DetailsUiState.Error -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            "Couldn't load this title",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = TextPrimary
-                        )
-                        Text(state.message, color = PrimeTextDim)
-                        Button(
-                            onClick = { viewModel.loadMediaDetails(mediaId) },
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimeBlue)
-                        ) { Text("Try Again") }
-                    }
-                }
+                Text(
+                    text = state.message,
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp)
+                )
+            }
+            is DetailsUiState.Success -> {
+                DetailContent(
+                    detail = state.detail,
+                    streamState = streamState,
+                    isInMyList = isInMyList,
+                    onPlay = { viewModel.playBest() },
+                    onTrailer = { youtubeId -> viewModel.playTrailer(youtubeId) },
+                    onToggleMyList = { viewModel.toggleMyList() },
+                    onLoadSources = { viewModel.loadSources() }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun MetaLine(label: String, value: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            "$label:",
-            color = PrimeTextDim,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-        )
-        Text(
-            value,
-            color = TextPrimary.copy(alpha = 0.9f),
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+private fun DetailContent(
+    detail: TmdbMediaDetail,
+    streamState: StreamState,
+    isInMyList: Boolean,
+    onPlay: () -> Unit,
+    onTrailer: (String) -> Unit,
+    onToggleMyList: () -> Unit,
+    onLoadSources: () -> Unit
+) {
+    val media = detail.media
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Backdrop with gradient
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            ) {
+                AsyncImage(
+                    model = media.backdropUrl("w1280"),
+                    contentDescription = media.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Gradient overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color(0xFF141414)),
+                                startY = 200f
+                            )
+                        )
+                )
+            }
+        }
+
+        // Title + Meta
+        item {
+            Column(modifier = Modifier.padding(horizontal = 48.dp)) {
+                Text(
+                    text = media.title,
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Meta row: year • rating • runtime • certification
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    media.year?.let {
+                        Text("$it", color = Color(0xFFB3B3B3), fontSize = 14.sp)
+                    }
+                    if (media.voteAverage > 0) {
+                        Text(
+                            text = "★ ${String.format("%.1f", media.voteAverage)}",
+                            color = Color(0xFFFFD700),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    media.runtime?.let {
+                        Text("${it}min", color = Color(0xFFB3B3B3), fontSize = 14.sp)
+                    }
+                    media.certification?.let {
+                        Text(
+                            text = it,
+                            color = Color(0xFFB3B3B3),
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .background(Color(0xFF333333), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                // Genres
+                if (media.genres.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = media.genres.joinToString(" • ") { it.name },
+                        color = Color(0xFF999999),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        // Action buttons
+        item {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 48.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Play button
+                Button(
+                    onClick = onPlay,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    enabled = streamState !is StreamState.Resolving,
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    if (streamState is StreamState.Resolving) {
+                        CircularProgressIndicator(
+                            color = Color.Black,
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.PlayArrow, "Play", tint = Color.Black)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Play", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+
+                // Sources picker
+                IconButton(onClick = onLoadSources) {
+                    Icon(Icons.Default.List, "Sources", tint = Color.White)
+                }
+
+                // Trailer button
+                detail.trailer?.let { trailer ->
+                    Button(
+                        onClick = { onTrailer(trailer.key) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333))
+                    ) {
+                        Icon(Icons.Default.PlayArrow, "Trailer", tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Trailer", color = Color.White)
+                    }
+                }
+
+                // My List toggle
+                IconButton(onClick = onToggleMyList) {
+                    Icon(
+                        imageVector = if (isInMyList) Icons.Default.Check else Icons.Default.Add,
+                        contentDescription = if (isInMyList) "Remove from My List" else "Add to My List",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+
+        // Overview
+        media.overview?.let { overview ->
+            item {
+                Text(
+                    text = overview,
+                    color = Color(0xFFCCCCCC),
+                    fontSize = 14.sp,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.padding(horizontal = 48.dp)
+                )
+            }
+        }
+
+        // Cast row
+        if (detail.credits.cast.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    "Cast",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 48.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            item {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(detail.credits.cast.take(15)) { member ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.width(80.dp)
+                        ) {
+                            AsyncImage(
+                                model = member.profileUrl(),
+                                contentDescription = member.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF333333))
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                member.name,
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            member.character?.let {
+                                Text(
+                                    it,
+                                    color = Color(0xFF999999),
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Similar titles
+        if (detail.similar.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    "More Like This",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 48.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            item {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(detail.similar) { item ->
+                        AsyncImage(
+                            model = item.posterUrl("w185"),
+                            contentDescription = item.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .width(120.dp)
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFF333333))
+                        )
+                    }
+                }
+            }
+        }
+
+        // Bottom spacing
+        item { Spacer(modifier = Modifier.height(48.dp)) }
+    }
+
+    // Stream error snackbar
+    if (streamState is StreamState.Error) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Text(
+                text = (streamState as StreamState.Error).message,
+                color = Color.White,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .background(Color(0xCC333333), RoundedCornerShape(8.dp))
+                    .padding(16.dp)
+            )
+        }
     }
 }

@@ -1,158 +1,259 @@
 package com.homeflix.tv.presentation.screens.details
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.homeflix.tv.data.repository.MediaRepository
-import com.homeflix.tv.domain.model.Media
+import com.homeflix.tv.data.resolver.TrailerResolver
+import com.homeflix.tv.domain.model.*
+import com.homeflix.tv.domain.repository.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val TAG = "DetailsViewModel"
+
+/**
+ * Detail page ViewModel — ARVIO-style.
+ * Loads TMDB details, credits, videos, similar, external IDs.
+ * Resolves streams on Play, provides source picker, trailer playback.
+ */
 @HiltViewModel
 class DetailsViewModel @Inject constructor(
-    private val mediaRepository: MediaRepository
+    savedStateHandle: SavedStateHandle,
+    private val tmdbRepository: TmdbRepository,
+    private val streamRepository: StreamRepository,
+    private val localRepository: LocalRepository,
+    private val settingsRepository: SettingsRepository,
+    private val trailerResolver: TrailerResolver
 ) : ViewModel() {
-    
+
+    private val tmdbId: Int = savedStateHandle.get<Int>("tmdbId") ?: 0
+    private val mediaTypeStr: String = savedStateHandle.get<String>("mediaType") ?: "MOVIE"
+    val mediaType: TmdbMediaType = if (mediaTypeStr == "TV") TmdbMediaType.TV else TmdbMediaType.MOVIE
+
     private val _uiState = MutableStateFlow<DetailsUiState>(DetailsUiState.Loading)
     val uiState: StateFlow<DetailsUiState> = _uiState.asStateFlow()
-    
+
+    private val _streamState = MutableStateFlow<StreamState>(StreamState.Idle)
+    val streamState: StateFlow<StreamState> = _streamState.asStateFlow()
+
     private val _isInMyList = MutableStateFlow(false)
     val isInMyList: StateFlow<Boolean> = _isInMyList.asStateFlow()
-    
-    private val _myListLoading = MutableStateFlow(false)
-    val myListLoading: StateFlow<Boolean> = _myListLoading.asStateFlow()
 
-    private val _similar = MutableStateFlow<List<Media>>(emptyList())
-    val similar: StateFlow<List<Media>> = _similar.asStateFlow()
-    
-    fun loadMediaDetails(mediaId: String) {
+    private val _episodes = MutableStateFlow<List<TmdbEpisode>>(emptyList())
+    val episodes: StateFlow<List<TmdbEpisode>> = _episodes.asStateFlow()
+
+    // Cached external IDs for stream resolution
+    private var externalIds: ExternalIds? = null
+
+    init {
+        loadDetails()
+        checkMyList()
+    }
+
+    private fun loadDetails() {
         viewModelScope.launch {
             _uiState.value = DetailsUiState.Loading
-            
             try {
-                // Load media details and watch progress concurrently
-                mediaRepository.getMediaById(mediaId)
-                    .collect { result ->
-                        result.fold(
-                            onSuccess = { media ->
-                                // Load watch progress for this media
-                                loadWatchProgress(media)
-                                // Check if media is in My List
-                                checkMyList(mediaId)
-                                // Fetch "More like this" by first genre
-                                loadSimilar(media)
-                            },
-                            onFailure = { error ->
-                                _uiState.value = DetailsUiState.Error(
-                                    error.message ?: "Failed to load media details"
-                                )
-                            }
-                        )
-                    }
-            } catch (e: Exception) {
-                Log.e("DetailsViewModel", "Error loading media details", e)
-                _uiState.value = DetailsUiState.Error(
-                    e.message ?: "Failed to load media details"
-                )
-            }
-        }
-    }
-    
-    private suspend fun checkMyList(mediaId: String) {
-        try {
-            val result = mediaRepository.checkMyList(mediaId)
-            result.fold(
-                onSuccess = { inList ->
-                    _isInMyList.value = inList
-                    Log.d("DetailsViewModel", "Media $mediaId in my list: $inList")
-                },
-                onFailure = { error ->
-                    Log.w("DetailsViewModel", "Failed to check my list: ${error.message}")
-                    _isInMyList.value = false
+                val detailResult = when (mediaType) {
+                    TmdbMediaType.MOVIE -> tmdbRepository.getMovieDetails(tmdbId)
+                    TmdbMediaType.TV -> tmdbRepository.getTvDetails(tmdbId)
                 }
-            )
-        } catch (e: Exception) {
-            Log.w("DetailsViewModel", "Error checking my list", e)
-            _isInMyList.value = false
-        }
-    }
-    
-    fun addToMyList(mediaId: String) {
-        viewModelScope.launch {
-            _myListLoading.value = true
-            try {
-                val result = mediaRepository.addToMyList(mediaId)
-                result.fold(
-                    onSuccess = {
-                        _isInMyList.value = true
-                        Log.d("DetailsViewModel", "Added to my list: $mediaId")
+
+                detailResult.fold(
+                    onSuccess = { detail ->
+                        _uiState.value = DetailsUiState.Success(detail)
+                        // Pre-fetch external IDs for stream resolution
+                        fetchExternalIds()
                     },
                     onFailure = { error ->
-                        Log.e("DetailsViewModel", "Failed to add to my list: ${error.message}")
+                        _uiState.value = DetailsUiState.Error(error.message ?: "Failed to load details")
                     }
                 )
             } catch (e: Exception) {
-                Log.e("DetailsViewModel", "Error adding to my list", e)
-            } finally {
-                _myListLoading.value = false
-            }
-        }
-    }
-    
-    private fun loadSimilar(media: Media) {
-        val genre = media.genreNames.firstOrNull() ?: media.genres.firstOrNull()?.name ?: return
-        viewModelScope.launch {
-            try {
-                mediaRepository.getMediaByGenre(genre.lowercase(), 15, 0).collect { result ->
-                    result.fold(
-                        onSuccess = { list ->
-                            _similar.value = list.filter { it.id != media.id }.take(12)
-                        },
-                        onFailure = { _similar.value = emptyList() }
-                    )
-                }
-            } catch (e: Exception) {
-                Log.w("DetailsViewModel", "Failed to load similar media", e)
+                Log.e(TAG, "Error loading details", e)
+                _uiState.value = DetailsUiState.Error(e.message ?: "Unknown error")
             }
         }
     }
 
-    private suspend fun loadWatchProgress(media: Media) {
-        try {
-            // Use direct playback progress API (matches web frontend: GET /api/playback/progress/{id})
-            val result = mediaRepository.getPlaybackProgress(media.id.toString())
-            
+    private fun fetchExternalIds() {
+        viewModelScope.launch {
+            tmdbRepository.getExternalIds(tmdbId, mediaType).fold(
+                onSuccess = { ids -> externalIds = ids },
+                onFailure = { Log.w(TAG, "Failed to fetch external IDs: ${it.message}") }
+            )
+        }
+    }
+
+    // ─── Season/Episode Loading ──────────────────────────────────────────
+
+    fun loadSeason(seasonNumber: Int) {
+        viewModelScope.launch {
+            tmdbRepository.getSeasonDetails(tmdbId, seasonNumber).fold(
+                onSuccess = { episodeList -> _episodes.value = episodeList },
+                onFailure = { Log.e(TAG, "Error loading season: ${it.message}") }
+            )
+        }
+    }
+
+    // ─── Stream Resolution ───────────────────────────────────────────────
+
+    /**
+     * Auto-play: resolve the best stream and return URL.
+     */
+    fun playBest(season: Int? = null, episode: Int? = null) {
+        viewModelScope.launch {
+            _streamState.value = StreamState.Resolving
+            val imdbId = externalIds?.imdbId
+            if (imdbId == null) {
+                _streamState.value = StreamState.Error("No IMDb ID found for this title")
+                return@launch
+            }
+
+            val settings = settingsRepository.getSettings()
+            val result = streamRepository.getBestStream(
+                imdbId = imdbId,
+                mediaType = mediaType,
+                season = season,
+                episode = episode,
+                preferredQuality = settings.preferredQuality
+            )
+
             result.fold(
-                onSuccess = { progress ->
-                    if (progress != null && progress.duration > 0) {
-                        val watchProgress = (progress.progress.toFloat() / progress.duration.toFloat()).coerceIn(0f, 1f)
-                        Log.d("DetailsViewModel", "Watch progress for media ${media.id}: ${(watchProgress * 100).toInt()}% (${progress.progress}s / ${progress.duration}s)")
-                        _uiState.value = DetailsUiState.Success(media, watchProgress, progress.progress)
+                onSuccess = { source ->
+                    if (source.url != null) {
+                        _streamState.value = StreamState.Ready(source.url, source)
+                    } else if (source.infoHash != null) {
+                        // Need debrid resolution
+                        val resolved = streamRepository.resolveDebridStream(source.infoHash, source.fileIndex)
+                        resolved.fold(
+                            onSuccess = { url -> _streamState.value = StreamState.Ready(url, source) },
+                            onFailure = { _streamState.value = StreamState.Error(it.message ?: "Debrid resolve failed") }
+                        )
                     } else {
-                        Log.d("DetailsViewModel", "No watch progress found for media ${media.id}")
-                        _uiState.value = DetailsUiState.Success(media, null, null)
+                        _streamState.value = StreamState.Error("No playable URL")
                     }
                 },
-                onFailure = { error ->
-                    Log.w("DetailsViewModel", "Failed to load watch progress: ${error.message}")
-                    _uiState.value = DetailsUiState.Success(media, null, null)
+                onFailure = { _streamState.value = StreamState.Error(it.message ?: "No streams found") }
+            )
+        }
+    }
+
+    /**
+     * Load all available sources for the picker panel.
+     */
+    fun loadSources(season: Int? = null, episode: Int? = null) {
+        viewModelScope.launch {
+            _streamState.value = StreamState.Resolving
+            val imdbId = externalIds?.imdbId
+            if (imdbId == null) {
+                _streamState.value = StreamState.Error("No IMDb ID")
+                return@launch
+            }
+
+            val result = if (mediaType == TmdbMediaType.MOVIE) {
+                streamRepository.resolveMovieStreams(imdbId)
+            } else {
+                if (season != null && episode != null) {
+                    streamRepository.resolveEpisodeStreams(imdbId, season, episode)
+                } else {
+                    Result.failure(Exception("Season and episode required"))
+                }
+            }
+
+            result.fold(
+                onSuccess = { sources -> _streamState.value = StreamState.SourcesLoaded(sources) },
+                onFailure = { _streamState.value = StreamState.Error(it.message ?: "Failed to load sources") }
+            )
+        }
+    }
+
+    /**
+     * Play a specific source from the picker.
+     */
+    fun playSource(source: StreamSource) {
+        viewModelScope.launch {
+            _streamState.value = StreamState.Resolving
+            if (source.url != null) {
+                _streamState.value = StreamState.Ready(source.url, source)
+            } else if (source.infoHash != null) {
+                val resolved = streamRepository.resolveDebridStream(source.infoHash, source.fileIndex)
+                resolved.fold(
+                    onSuccess = { url -> _streamState.value = StreamState.Ready(url, source) },
+                    onFailure = { _streamState.value = StreamState.Error(it.message ?: "Resolve failed") }
+                )
+            }
+        }
+    }
+
+    // ─── Trailer ─────────────────────────────────────────────────────────
+
+    fun playTrailer(youtubeId: String) {
+        viewModelScope.launch {
+            _streamState.value = StreamState.Resolving
+            trailerResolver.resolve(youtubeId).fold(
+                onSuccess = { trailer ->
+                    _streamState.value = StreamState.TrailerReady(trailer.streamUrl, trailer.title)
+                },
+                onFailure = {
+                    _streamState.value = StreamState.Error("Trailer unavailable: ${it.message}")
                 }
             )
-        } catch (e: Exception) {
-            Log.w("DetailsViewModel", "Error loading watch progress", e)
-            _uiState.value = DetailsUiState.Success(media, null, null)
         }
+    }
+
+    // ─── My List ─────────────────────────────────────────────────────────
+
+    private fun checkMyList() {
+        viewModelScope.launch {
+            _isInMyList.value = localRepository.isInMyList(tmdbId, mediaType)
+        }
+    }
+
+    fun toggleMyList() {
+        viewModelScope.launch {
+            val detail = (_uiState.value as? DetailsUiState.Success)?.detail ?: return@launch
+            val media = detail.media
+
+            if (_isInMyList.value) {
+                localRepository.removeFromMyList(tmdbId, mediaType)
+                _isInMyList.value = false
+            } else {
+                localRepository.addToMyList(
+                    MyListItem(
+                        tmdbId = tmdbId,
+                        mediaType = mediaType,
+                        title = media.title,
+                        posterPath = media.posterPath,
+                        backdropPath = media.backdropPath,
+                        voteAverage = media.voteAverage,
+                        overview = media.overview
+                    )
+                )
+                _isInMyList.value = true
+            }
+        }
+    }
+
+    fun resetStreamState() {
+        _streamState.value = StreamState.Idle
     }
 }
 
 sealed class DetailsUiState {
     object Loading : DetailsUiState()
     data class Error(val message: String) : DetailsUiState()
-    data class Success(
-        val media: Media,
-        val watchProgress: Float? = null, // 0.0 to 1.0, null if no progress
-        val progressSeconds: Long? = null // Progress in seconds for resume
-    ) : DetailsUiState()
+    data class Success(val detail: TmdbMediaDetail) : DetailsUiState()
+}
+
+sealed class StreamState {
+    object Idle : StreamState()
+    object Resolving : StreamState()
+    data class Ready(val url: String, val source: StreamSource) : StreamState()
+    data class TrailerReady(val url: String, val title: String) : StreamState()
+    data class SourcesLoaded(val sources: List<StreamSource>) : StreamState()
+    data class Error(val message: String) : StreamState()
 }
