@@ -1,4 +1,7 @@
 package com.homeflix.tv.presentation.components
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.Media
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -13,7 +16,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.homeflix.tv.domain.model.Media
+import com.homeflix.tv.data.model.CatalogItem
 import com.homeflix.tv.presentation.theme.TextPrimary
 import kotlinx.coroutines.launch
 

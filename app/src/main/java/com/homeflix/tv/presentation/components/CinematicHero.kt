@@ -1,4 +1,7 @@
 package com.homeflix.tv.presentation.components
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.Media
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -34,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
-import com.homeflix.tv.domain.model.Media
+import com.homeflix.tv.data.model.CatalogItem
 import com.homeflix.tv.presentation.theme.*
 import com.homeflix.tv.util.ApiUtils
 import kotlinx.coroutines.delay

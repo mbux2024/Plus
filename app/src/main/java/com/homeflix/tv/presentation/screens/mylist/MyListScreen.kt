@@ -1,4 +1,5 @@
 package com.homeflix.tv.presentation.screens.mylist
+import com.homeflix.tv.data.model.*
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -24,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.homeflix.tv.domain.model.Media
+import com.homeflix.tv.data.model.CatalogItem
 import com.homeflix.tv.presentation.components.NetflixSideNavigation
 import com.homeflix.tv.presentation.navigation.Screen
 import com.homeflix.tv.presentation.theme.PrimeBg

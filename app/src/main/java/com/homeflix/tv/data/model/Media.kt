@@ -47,3 +47,7 @@ data class CatalogRow(
     val items: List<CatalogItem>,
     val ranked: Boolean = false
 )
+
+/** Backward compat: old UI uses "Media" as a type name. */
+typealias Media = CatalogItem
+

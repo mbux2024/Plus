@@ -1,4 +1,6 @@
 package com.homeflix.tv.presentation.components
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.Media
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode

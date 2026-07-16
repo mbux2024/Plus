@@ -1,4 +1,7 @@
 package com.homeflix.tv.presentation.components
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.Media
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -29,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.homeflix.tv.domain.model.Media
+import com.homeflix.tv.data.model.CatalogItem
 import com.homeflix.tv.presentation.theme.PrimeTextDim
 import com.homeflix.tv.presentation.theme.TextPrimary
 import com.homeflix.tv.util.ApiUtils

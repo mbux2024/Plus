@@ -19,6 +19,10 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Baked-in TMDB v4 read token so the app works out-of-the-box
+        buildConfigField("String", "TMDB_DEFAULT_TOKEN", "\"eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmN2MwZGJkMjg0NzI1NGRlMmExYmE5ODQ0MDYwZGQ4NCIsIm5iZiI6MTc3ODc5NDkwMy43NjcsInN1YiI6IjZhMDY0MTk3MWJkYmI1OTNkNzIwMjI0MiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.HydrwkZvHc2OIXbCqnqe9sNhHsLt_FXhf98VqI7j4gQ\"")
+        buildConfigField("String", "MDBLIST_DEFAULT_KEY", "\"uatgtmuqbig5mlw92tl10fdld\"")
+        buildConfigField("String", "GEMINI_DEFAULT_KEY", "\"\"")
     }
 
     buildTypes {

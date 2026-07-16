@@ -26,7 +26,7 @@ class SearchViewModel @Inject constructor(application: Application) : AndroidVie
     init { viewModelScope.launch { _topSearches.value = tmdb.trendingMovies().take(8) } }
     fun searchMedia(query: String) { searchJob?.cancel(); if (query.isBlank()) { _uiState.value = SearchUiState.Initial; return }
         searchJob = viewModelScope.launch { delay(300); _uiState.value = SearchUiState.Loading
-            try { _uiState.value = SearchUiState.Success(tmdb.searchMulti(query)) } catch (e: Exception) { _uiState.value = SearchUiState.Error(e.message ?: "Error") }
+            try { _uiState.value = SearchUiState.Success(tmdb.search(query)) } catch (e: Exception) { _uiState.value = SearchUiState.Error(e.message ?: "Error") }
     }}
     fun searchByGenre(genreName: String) {}
     fun clearSearch() { searchJob?.cancel(); _uiState.value = SearchUiState.Initial }

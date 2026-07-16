@@ -1,4 +1,5 @@
 package com.homeflix.tv.presentation.screens.home
+import com.homeflix.tv.data.model.*
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
-import com.homeflix.tv.domain.model.MediaType
+import com.homeflix.tv.data.model.CatalogItemType
 import com.homeflix.tv.presentation.components.CinematicHero
 import com.homeflix.tv.presentation.components.NetflixSideNavigation
 import com.homeflix.tv.presentation.components.MediaRow

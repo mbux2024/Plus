@@ -1,4 +1,6 @@
 package com.homeflix.tv.presentation.components
+import com.homeflix.tv.data.model.*
+import com.homeflix.tv.data.model.Media
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

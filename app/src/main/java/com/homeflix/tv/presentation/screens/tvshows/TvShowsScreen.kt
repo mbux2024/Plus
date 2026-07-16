@@ -1,4 +1,5 @@
 package com.homeflix.tv.presentation.screens.tvshows
+import com.homeflix.tv.data.model.*
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.Crossfade
@@ -38,8 +39,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.homeflix.tv.domain.model.Media
-import com.homeflix.tv.domain.model.MediaType
+import com.homeflix.tv.data.model.CatalogItem
+import com.homeflix.tv.data.model.CatalogItemType
 import com.homeflix.tv.presentation.components.NetflixSideNavigation
 import com.homeflix.tv.presentation.components.ContinueWatchingRow
 import com.homeflix.tv.presentation.navigation.Screen
@@ -243,8 +244,6 @@ fun TvShowsScreen(
                                     },
                                     focusRequester = continueWatchingFocusRequester,
                                     mediaTypeFilter = setOf(
-                                        com.homeflix.tv.domain.model.MediaType.EPISODE,
-                                        com.homeflix.tv.domain.model.MediaType.TV_SHOW
                                     ),
                                     applyHorizontalPadding = false,
                                     modifier = Modifier.padding(bottom = 24.dp, start = 32.dp)

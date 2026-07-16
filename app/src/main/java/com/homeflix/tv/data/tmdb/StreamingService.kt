@@ -18,15 +18,15 @@ data class StreamingService(
 object StreamingServices {
     // Artwork bundled from the user's Media-Data "Services 2" set.
     val ALL = listOf(
-        StreamingService(WatchProviders.NETFLIX, "Netflix", 0xFF5A0A0A, R.drawable.svc_netflix),
-        StreamingService(WatchProviders.DISNEY_PLUS, "Disney+", 0xFF10345C, R.drawable.svc_disney_plus),
-        StreamingService(WatchProviders.APPLE_TV_PLUS, "Apple TV+", 0xFF1A1A1A, R.drawable.svc_apple_tv),
-        StreamingService(WatchProviders.PRIME_VIDEO, "Prime Video", 0xFF0F79C7, R.drawable.svc_prime_video),
-        StreamingService(WatchProviders.AMC_PLUS, "AMC+", 0xFF1A1A1A, R.drawable.svc_amc_plus),
-        StreamingService(WatchProviders.HULU, "Hulu", 0xFF0E3B24, R.drawable.svc_hulu),
-        StreamingService(WatchProviders.PARAMOUNT_PLUS, "Paramount+", 0xFF0047AB, R.drawable.svc_paramount),
-        StreamingService(WatchProviders.PEACOCK, "Peacock", 0xFF1A1A1A, R.drawable.svc_peacock),
-        StreamingService(WatchProviders.STARZ, "Starz", 0xFF141414, R.drawable.svc_starz),
-        StreamingService(WatchProviders.DISCOVERY_PLUS, "Discovery+", 0xFF004E92, R.drawable.svc_discovery_plus)
+        StreamingService(WatchProviders.NETFLIX, "Netflix", 0xFF5A0A0A, 0),
+        StreamingService(WatchProviders.DISNEY_PLUS, "Disney+", 0xFF10345C, 0),
+        StreamingService(WatchProviders.APPLE_TV_PLUS, "Apple TV+", 0xFF1A1A1A, 0),
+        StreamingService(WatchProviders.PRIME_VIDEO, "Prime Video", 0xFF0F79C7, 0),
+        StreamingService(WatchProviders.AMC_PLUS, "AMC+", 0xFF1A1A1A, 0),
+        StreamingService(WatchProviders.HULU, "Hulu", 0xFF0E3B24, 0),
+        StreamingService(WatchProviders.PARAMOUNT_PLUS, "Paramount+", 0xFF0047AB, 0),
+        StreamingService(WatchProviders.PEACOCK, "Peacock", 0xFF1A1A1A, 0),
+        StreamingService(WatchProviders.STARZ, "Starz", 0xFF141414, 0),
+        StreamingService(WatchProviders.DISCOVERY_PLUS, "Discovery+", 0xFF004E92, 0)
     )
 }

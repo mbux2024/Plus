@@ -14,84 +14,21 @@ import com.homeflix.tv.presentation.screens.settings.SettingsScreen
 fun HomeFlixNavigation(
     navController: NavHostController = rememberNavController()
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Home.route
-    ) {
-        composable(Screen.Home.route) {
-            NetflixHomeScreen(navController = navController)
+    NavHost(navController = navController, startDestination = Screen.Home.route) {
+        composable(Screen.Home.route) { NetflixHomeScreen(navController = navController) }
+        composable(Screen.Browse.route) { com.homeflix.tv.presentation.screens.browse.BrowseScreen(navController = navController) }
+        composable(Screen.Search.route) { com.homeflix.tv.presentation.screens.search.SearchScreen(navController = navController) }
+        composable(Screen.TvShows.route) { com.homeflix.tv.presentation.screens.tvshows.TvShowsScreen(navController = navController) }
+        composable(Screen.MyList.route) { com.homeflix.tv.presentation.screens.mylist.MyListScreen(navController = navController) }
+        composable(Screen.Settings.route) { SettingsScreen(navController = navController) }
+        composable(route = Screen.TvSeriesDetails.route, arguments = Screen.TvSeriesDetails.arguments) { entry ->
+            val seriesId = entry.arguments?.getString("seriesId") ?: ""
+            com.homeflix.tv.presentation.screens.tvshows.TvSeriesDetailsScreen(seriesId = seriesId, navController = navController)
         }
-
-        composable(Screen.Browse.route) {
-            // BrowseScreen now shows TMDB movies/TV with pagination
-            com.homeflix.tv.presentation.screens.browse.BrowseScreen(navController = navController)
-        }
-
-        composable(Screen.Search.route) {
-            com.homeflix.tv.presentation.screens.search.SearchScreen(navController = navController)
-        }
-
-        composable(Screen.TvShows.route) {
-            com.homeflix.tv.presentation.screens.tvshows.TvShowsScreen(navController = navController)
-        }
-
-        composable(Screen.MyList.route) {
-            com.homeflix.tv.presentation.screens.mylist.MyListScreen(navController = navController)
-        }
-
-        composable(Screen.Settings.route) {
-            SettingsScreen(navController = navController)
-        }
-
-        composable(
-            route = Screen.TvSeriesDetails.route,
-            arguments = Screen.TvSeriesDetails.arguments
-        ) { backStackEntry ->
-            val seriesId = backStackEntry.arguments?.getString("seriesId") ?: ""
-            com.homeflix.tv.presentation.screens.tvshows.TvSeriesDetailsScreen(
-                seriesId = seriesId,
-                navController = navController
-            )
-        }
-
-        composable(
-            route = Screen.TvSeriesSeason.route,
-            arguments = Screen.TvSeriesSeason.arguments
-        ) { backStackEntry ->
-            val seriesId = backStackEntry.arguments?.getString("seriesId") ?: ""
-            val seasonNumber = backStackEntry.arguments?.getInt("seasonNumber") ?: 1
-            com.homeflix.tv.presentation.screens.tvshows.TvSeriesSeasonScreen(
-                seriesId = seriesId,
-                seasonNumber = seasonNumber,
-                navController = navController
-            )
-        }
-
-        composable(
-            route = Screen.Details.route,
-            arguments = Screen.Details.arguments
-        ) { backStackEntry ->
-            val tmdbId = backStackEntry.arguments?.getInt("tmdbId") ?: 0
-            val mediaType = backStackEntry.arguments?.getString("mediaType") ?: "MOVIE"
-            com.homeflix.tv.presentation.screens.details.DetailsScreen(
-                navController = navController
-            )
-        }
-
-        composable(
-            route = Screen.VideoPlayer.route,
-            arguments = Screen.VideoPlayer.arguments
-        ) { backStackEntry ->
-            val streamUrl = backStackEntry.arguments?.getString("streamUrl") ?: ""
-            val title = backStackEntry.arguments?.getString("title") ?: ""
-            val tmdbId = backStackEntry.arguments?.getInt("tmdbId") ?: 0
-
-            com.homeflix.tv.presentation.screens.player.VideoPlayerScreen(
-                streamUrl = java.net.URLDecoder.decode(streamUrl, "UTF-8"),
-                title = java.net.URLDecoder.decode(title, "UTF-8"),
-                tmdbId = tmdbId,
-                onNavigateBack = { navController.popBackStack() }
-            )
+        composable(route = Screen.TvSeriesSeason.route, arguments = Screen.TvSeriesSeason.arguments) { entry ->
+            val seriesId = entry.arguments?.getString("seriesId") ?: ""
+            val seasonNumber = entry.arguments?.getInt("seasonNumber") ?: 1
+            com.homeflix.tv.presentation.screens.tvshows.TvSeriesSeasonScreen(seriesId = seriesId, seasonNumber = seasonNumber, navController = navController)
         }
     }
 }
@@ -106,72 +43,26 @@ sealed class Screen(val route: String) {
 
     object TvSeriesDetails : Screen("tv-series/{seriesId}") {
         fun createRoute(seriesId: String) = "tv-series/$seriesId"
-        val arguments = listOf(
-            androidx.navigation.navArgument("seriesId") {
-                type = androidx.navigation.NavType.StringType
-            }
-        )
+        val arguments = listOf(androidx.navigation.navArgument("seriesId") { type = androidx.navigation.NavType.StringType })
     }
-
     object TvSeriesSeason : Screen("tv-series/{seriesId}/season/{seasonNumber}") {
         fun createRoute(seriesId: String, seasonNumber: Int) = "tv-series/$seriesId/season/$seasonNumber"
         val arguments = listOf(
-            androidx.navigation.navArgument("seriesId") {
-                type = androidx.navigation.NavType.StringType
-            },
-            androidx.navigation.navArgument("seasonNumber") {
-                type = androidx.navigation.NavType.IntType
-            }
+            androidx.navigation.navArgument("seriesId") { type = androidx.navigation.NavType.StringType },
+            androidx.navigation.navArgument("seasonNumber") { type = androidx.navigation.NavType.IntType }
         )
     }
-
     object Details : Screen("details/{tmdbId}/{mediaType}") {
         fun createRoute(tmdbId: Int, mediaType: String = "MOVIE") = "details/$tmdbId/$mediaType"
-        // Backward compat: old code passed media.id.toString()
         fun createRoute(mediaId: String) = "details/${mediaId.toIntOrNull() ?: 0}/MOVIE"
         val arguments = listOf(
-            androidx.navigation.navArgument("tmdbId") {
-                type = androidx.navigation.NavType.IntType
-            },
-            androidx.navigation.navArgument("mediaType") {
-                type = androidx.navigation.NavType.StringType
-                defaultValue = "MOVIE"
-            }
+            androidx.navigation.navArgument("tmdbId") { type = androidx.navigation.NavType.IntType },
+            androidx.navigation.navArgument("mediaType") { type = androidx.navigation.NavType.StringType; defaultValue = "MOVIE" }
         )
     }
-
-    object VideoPlayer : Screen("player/{streamUrl}/{title}/{tmdbId}") {
-        fun createRoute(
-            streamUrl: String,
-            title: String = "",
-            tmdbId: Int = 0
-        ): String {
-            val encodedUrl = java.net.URLEncoder.encode(streamUrl, "UTF-8")
-            val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
-            return "player/$encodedUrl/$encodedTitle/$tmdbId"
-        }
-
-        /**
-         * Backward compat: old code called createRoute(mediaId: Int, startTime: Long)
-         * Now this creates a placeholder route — actual stream resolution happens in DetailsScreen.
-         */
-        fun createRoute(mediaId: Int, startTime: Long = 0L, forceStartFromBeginning: Boolean = false): String {
-            // Navigate to details page instead — streaming requires debrid resolution now
-            return "details/$mediaId/MOVIE"
-        }
-
-        val arguments = listOf(
-            androidx.navigation.navArgument("streamUrl") {
-                type = androidx.navigation.NavType.StringType
-            },
-            androidx.navigation.navArgument("title") {
-                type = androidx.navigation.NavType.StringType
-                defaultValue = ""
-            },
-            androidx.navigation.navArgument("tmdbId") {
-                type = androidx.navigation.NavType.IntType
-                defaultValue = 0
-            }
-        )
+    object VideoPlayer : Screen("player/{mediaId}") {
+        fun createRoute(mediaId: Int, startTime: Long = 0L, forceStartFromBeginning: Boolean = false) = "player/$mediaId"
+        fun createRoute(streamUrl: String, title: String = "", tmdbId: Int = 0) = "player/$tmdbId"
+        val arguments = listOf(androidx.navigation.navArgument("mediaId") { type = androidx.navigation.NavType.IntType; defaultValue = 0 })
     }
 }
