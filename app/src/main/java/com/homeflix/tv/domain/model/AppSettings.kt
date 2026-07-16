@@ -47,7 +47,11 @@ data class AppSettings(
     val streamSourceMode: StreamSourceMode = StreamSourceMode.TORRENTIO_DEBRID,
     val customAddonUrl: String = "", // For Comet custom URL mode
     val subtitleAddonUrl: String = "https://opensubtitles-v3.strem.io" // Default OpenSubtitles v3
-)
+) {
+    companion object {
+        const val DEFAULT_TMDB_API_KEY = "f7c0dbd2847254de2a1ba9844060dd84"
+    }
+}
 
 enum class PlayerEngine(val label: String) {
     MPV("MPV (Recommended)"),

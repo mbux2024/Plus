@@ -142,7 +142,7 @@ class SettingsRepositoryImpl @Inject constructor(
             skipIntroEnabled = prefs[Keys.SKIP_INTRO] ?: true,
 
             // Content Discovery
-            tmdbApiKey = prefs[Keys.TMDB_API_KEY] ?: "",
+            tmdbApiKey = prefs[Keys.TMDB_API_KEY] ?: AppSettings.DEFAULT_TMDB_API_KEY,
             tmdbEnrichArtwork = prefs[Keys.TMDB_ENRICH_ARTWORK] ?: true,
             tmdbEnrichBasicInfo = prefs[Keys.TMDB_ENRICH_BASIC] ?: true,
             tmdbEnrichDetails = prefs[Keys.TMDB_ENRICH_DETAILS] ?: true,
