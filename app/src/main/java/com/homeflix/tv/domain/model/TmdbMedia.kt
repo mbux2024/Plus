@@ -40,6 +40,8 @@ data class TmdbMedia(
     val certification: String? = null
 ) : Parcelable {
 
+    // ─── Primary computed properties ─────────────────────────────────────
+
     val year: Int?
         get() = (releaseDate ?: firstAirDate)?.take(4)?.toIntOrNull()
 
@@ -54,6 +56,44 @@ data class TmdbMedia(
 
     fun logoUrl(size: String = "w300"): String? =
         logoPath?.let { "https://image.tmdb.org/t/p/$size$it" }
+
+    // ─── Backward-compat properties (used by existing UI composables) ────
+
+    /** Old UI: media.rating (maps to voteAverage) */
+    val rating: Double get() = voteAverage
+
+    /** Old UI: media.description (maps to overview) */
+    val description: String? get() = overview
+
+    /** Old UI: media.genreNames as List<String> */
+    val genreNames: List<String> get() = genres.map { it.name }
+
+    /** Old UI: media.quality — not available from TMDB */
+    val quality: String? get() = null
+
+    /** Old UI: media.type as MediaType enum */
+    val type: MediaType get() = MediaType.from(mediaType)
+
+    /** Old UI: media.tmdbBackdropUrl */
+    val tmdbBackdropUrl: String? get() = backdropUrl()
+
+    /** Old UI: media.tmdbPosterUrl */
+    val tmdbPosterUrl: String? get() = posterUrl()
+
+    /** Old UI: media.bannerPath — maps to backdropPath */
+    val bannerPath: String? get() = backdropPath
+
+    /** Old UI: media.previewPath — not available */
+    val previewPath: String? get() = null
+
+    /** Old UI: media.filePath — not applicable */
+    val filePath: String get() = ""
+
+    /** Old UI: media.viewCount */
+    val viewCount: Int get() = 0
+
+    /** Old UI: media.duration (seconds) — maps to runtime (minutes) * 60 */
+    val duration: Int get() = (runtime ?: 0) * 60
 }
 
 enum class TmdbMediaType {
