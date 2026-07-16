@@ -93,6 +93,7 @@ data class Season(
     val seasonNumber: Int,
     val name: String,
     val overview: String? = null,
+    val description: String? = overview,
     val posterPath: String? = null,
     val airDate: String? = null,
     val episodeCount: Int = 0
