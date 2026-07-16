@@ -29,13 +29,28 @@ class TvSeriesSeasonViewModel @Inject constructor(
                 val episodesResult = tmdbRepository.getSeasonDetails(tvId, seasonNumber)
 
                 val detail = detailResult.getOrNull()
-                val episodes = episodesResult.getOrDefault(emptyList())
+                val tmdbEpisodes = episodesResult.getOrDefault(emptyList())
+
+                // Convert TmdbEpisode → Episode for screen compatibility
+                val episodes = tmdbEpisodes.map { ep ->
+                    Episode(
+                        id = ep.id,
+                        title = ep.name,
+                        episodeTitle = ep.name,
+                        description = ep.overview,
+                        duration = ep.runtime,
+                        rating = ep.voteAverage,
+                        airDate = ep.airDate,
+                        thumbnailPath = ep.stillPath?.let { "https://image.tmdb.org/t/p/w300$it" },
+                        episodeStillPath = ep.stillPath?.let { "https://image.tmdb.org/t/p/w300$it" }
+                    )
+                }
 
                 if (detail != null) {
                     _uiState.value = TvSeriesSeasonUiState.Success(
                         detail = detail,
                         seasonNumber = seasonNumber,
-                        episodes = episodes
+                        episodesList = episodes
                     )
                 } else {
                     _uiState.value = TvSeriesSeasonUiState.Error("Failed to load series")
@@ -54,7 +69,7 @@ sealed class TvSeriesSeasonUiState {
     data class Success(
         val detail: TmdbMediaDetail,
         val seasonNumber: Int,
-        val episodes: List<TmdbEpisode>,
+        val episodesList: List<Episode>,
         // Backward compat
         val series: com.homeflix.tv.presentation.screens.tvshows.TvSeries = detail.media.let { media ->
             com.homeflix.tv.presentation.screens.tvshows.TvSeries(
@@ -76,8 +91,9 @@ sealed class TvSeriesSeasonUiState {
             id = 0,
             seasonNumber = seasonNumber,
             name = "Season $seasonNumber",
-            episodeCount = episodes.size
-        )
+            episodeCount = episodesList.size
+        ),
+        val episodes: List<Episode> = episodesList
     ) : TvSeriesSeasonUiState()
     data class Error(val message: String) : TvSeriesSeasonUiState()
 }
