@@ -2,130 +2,92 @@ package com.homeflix.tv.presentation.screens.browse
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.homeflix.tv.data.repository.MediaRepository
-import com.homeflix.tv.domain.model.Genre
-import com.homeflix.tv.domain.model.Media
+import com.homeflix.tv.domain.model.TmdbMedia
+import com.homeflix.tv.domain.model.TmdbMediaType
+import com.homeflix.tv.domain.repository.TmdbRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * BROWSE SCREEN - PAGINATED CONTENT FOR PERFORMANCE
- * Implements pagination to prevent memory issues with large libraries.
- * Shows latest content first with load more functionality.
+ * BROWSE SCREEN - PAGINATED TMDB CONTENT
+ * Shows popular movies with pagination via TMDB API pages.
  */
 @HiltViewModel
 class BrowseViewModel @Inject constructor(
-    private val mediaRepository: MediaRepository
+    private val tmdbRepository: TmdbRepository
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow<BrowseUiState>(BrowseUiState.Loading)
     val uiState: StateFlow<BrowseUiState> = _uiState.asStateFlow()
-    
-    // Pagination state with memory management
-    private var currentPage = 0
-    private val pageSize = 24 // Netflix-style page size for optimal performance
+
+    private var currentPage = 1
     private var isLoadingMore = false
     private var hasMoreContent = true
-    private val allLoadedMovies = mutableListOf<Media>()
-    
-    // Memory management - limit total loaded items to prevent OOM
-    private val maxLoadedItems = 200 // Maximum items to keep in memory
-    
+    private val allLoadedMovies = mutableListOf<TmdbMedia>()
+
     init {
         loadBrowseContent()
     }
-    
+
     fun loadBrowseContent() {
         viewModelScope.launch {
             _uiState.value = BrowseUiState.Loading
-            
-            try {
-                // Reset pagination state
-                currentPage = 0
-                allLoadedMovies.clear()
-                hasMoreContent = true
-                
-                // Load first page of movies with pagination
-                loadMoviesPage()
-                
-            } catch (e: Exception) {
-                _uiState.value = BrowseUiState.Error(e.message ?: "Unknown error occurred")
-            }
+            currentPage = 1
+            allLoadedMovies.clear()
+            hasMoreContent = true
+            loadMoviesPage()
         }
     }
-    
+
     private suspend fun loadMoviesPage() {
         try {
-            val offset = currentPage * pageSize
-            
-            // Load movies with pagination - latest first
-            mediaRepository.getMovies(limit = pageSize, offset = offset)
-                .collect { moviesResult ->
-                    val newMovies = moviesResult.getOrNull()?.sortedByDescending { it.id } ?: emptyList()
-                    
-                    if (currentPage == 0) {
-                        // First page - replace all movies
+            tmdbRepository.getPopularMovies(page = currentPage).fold(
+                onSuccess = { newMovies ->
+                    if (currentPage == 1) {
                         allLoadedMovies.clear()
-                        allLoadedMovies.addAll(newMovies)
-                        
-                        if (allLoadedMovies.isEmpty()) {
-                            _uiState.value = BrowseUiState.Error("No movies available")
-                            return@collect
-                        }
-                    } else {
-                        // Subsequent pages - append movies with memory management
-                        allLoadedMovies.addAll(newMovies)
-                        
-                        // Memory management: Remove oldest items if we exceed limit
-                        if (allLoadedMovies.size > maxLoadedItems) {
-                            val itemsToRemove = allLoadedMovies.size - maxLoadedItems
-                            repeat(itemsToRemove) {
-                                allLoadedMovies.removeFirstOrNull()
-                            }
-                        }
                     }
-                    
-                    // Check if we have more content
-                    hasMoreContent = newMovies.size == pageSize
-                    
+                    allLoadedMovies.addAll(newMovies)
+                    hasMoreContent = newMovies.size >= 20 // TMDB pages have 20 items
+
                     _uiState.value = BrowseUiState.Success(
-                        movies = allLoadedMovies.toList(), // Create immutable copy
+                        movies = allLoadedMovies.toList(),
                         hasMore = hasMoreContent,
                         isLoadingMore = false,
                         totalCount = allLoadedMovies.size
                     )
-                    
+                    isLoadingMore = false
+                },
+                onFailure = { error ->
+                    if (currentPage == 1) {
+                        _uiState.value = BrowseUiState.Error(error.message ?: "Failed to load movies")
+                    }
                     isLoadingMore = false
                 }
-                
+            )
         } catch (e: Exception) {
             _uiState.value = BrowseUiState.Error(e.message ?: "Failed to load movies")
             isLoadingMore = false
         }
     }
-    
+
     fun loadMoreMovies() {
         if (isLoadingMore || !hasMoreContent) return
-        
+
         viewModelScope.launch {
             isLoadingMore = true
-            
-            // Update UI to show loading more state
             val currentState = _uiState.value
             if (currentState is BrowseUiState.Success) {
                 _uiState.value = currentState.copy(isLoadingMore = true)
             }
-            
             currentPage++
             loadMoviesPage()
         }
     }
-    
+
     override fun onCleared() {
         super.onCleared()
-        // Clean up memory when ViewModel is destroyed
         allLoadedMovies.clear()
     }
 }
@@ -134,7 +96,7 @@ sealed class BrowseUiState {
     object Loading : BrowseUiState()
     data class Error(val message: String) : BrowseUiState()
     data class Success(
-        val movies: List<Media>,
+        val movies: List<TmdbMedia>,
         val hasMore: Boolean = false,
         val isLoadingMore: Boolean = false,
         val totalCount: Int = 0

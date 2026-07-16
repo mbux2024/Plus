@@ -2,7 +2,8 @@ package com.homeflix.tv.presentation.screens.tvshows
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.homeflix.tv.domain.repository.MediaRepository
+import com.homeflix.tv.domain.model.*
+import com.homeflix.tv.domain.repository.TmdbRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,15 +13,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TvSeriesDetailsViewModel @Inject constructor(
-    private val mediaRepository: MediaRepository
+    private val tmdbRepository: TmdbRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TvSeriesDetailsUiState>(TvSeriesDetailsUiState.Loading)
     val uiState: StateFlow<TvSeriesDetailsUiState> = _uiState.asStateFlow()
 
-    // Episodes of the currently selected season (Prime-style inline list)
-    private val _episodes = MutableStateFlow<List<Episode>>(emptyList())
-    val episodes: StateFlow<List<Episode>> = _episodes.asStateFlow()
+    private val _episodes = MutableStateFlow<List<TmdbEpisode>>(emptyList())
+    val episodes: StateFlow<List<TmdbEpisode>> = _episodes.asStateFlow()
 
     private val _selectedSeason = MutableStateFlow(1)
     val selectedSeason: StateFlow<Int> = _selectedSeason.asStateFlow()
@@ -32,19 +32,22 @@ class TvSeriesDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = TvSeriesDetailsUiState.Loading
+                val tvId = seriesId.toIntOrNull() ?: return@launch
 
-                // Get series details and seasons
-                val series = mediaRepository.getTvSeriesById(seriesId.toInt())
-                val seasons = mediaRepository.getTvSeriesSeasons(seriesId.toInt())
-                    .sortedBy { it.seasonNumber }
-
-                _uiState.value = TvSeriesDetailsUiState.Success(
-                    series = series,
-                    seasons = seasons
+                tmdbRepository.getTvDetails(tvId).fold(
+                    onSuccess = { detail ->
+                        _uiState.value = TvSeriesDetailsUiState.Success(detail = detail)
+                        // Auto-load first season episodes
+                        detail.seasons.firstOrNull()?.let {
+                            selectSeason(seriesId, it.seasonNumber)
+                        }
+                    },
+                    onFailure = { error ->
+                        _uiState.value = TvSeriesDetailsUiState.Error(
+                            message = error.message ?: "Failed to load series details"
+                        )
+                    }
                 )
-
-                // Auto-load episodes for the first season
-                seasons.firstOrNull()?.let { selectSeason(seriesId, it.seasonNumber) }
             } catch (e: Exception) {
                 _uiState.value = TvSeriesDetailsUiState.Error(
                     message = e.message ?: "Failed to load series details"
@@ -58,7 +61,11 @@ class TvSeriesDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             _episodesLoading.value = true
             try {
-                _episodes.value = mediaRepository.getTvSeriesEpisodes(seriesId.toInt(), seasonNumber)
+                val tvId = seriesId.toIntOrNull() ?: return@launch
+                tmdbRepository.getSeasonDetails(tvId, seasonNumber).fold(
+                    onSuccess = { episodeList -> _episodes.value = episodeList },
+                    onFailure = { _episodes.value = emptyList() }
+                )
             } catch (e: Exception) {
                 _episodes.value = emptyList()
             } finally {
@@ -70,9 +77,6 @@ class TvSeriesDetailsViewModel @Inject constructor(
 
 sealed class TvSeriesDetailsUiState {
     object Loading : TvSeriesDetailsUiState()
-    data class Success(
-        val series: TvSeries,
-        val seasons: List<Season>
-    ) : TvSeriesDetailsUiState()
+    data class Success(val detail: TmdbMediaDetail) : TvSeriesDetailsUiState()
     data class Error(val message: String) : TvSeriesDetailsUiState()
 }
