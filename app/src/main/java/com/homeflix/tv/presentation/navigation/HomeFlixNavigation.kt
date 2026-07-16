@@ -44,6 +44,30 @@ fun HomeFlixNavigation(
         }
 
         composable(
+            route = Screen.TvSeriesDetails.route,
+            arguments = Screen.TvSeriesDetails.arguments
+        ) { backStackEntry ->
+            val seriesId = backStackEntry.arguments?.getString("seriesId") ?: ""
+            com.homeflix.tv.presentation.screens.tvshows.TvSeriesDetailsScreen(
+                seriesId = seriesId,
+                navController = navController
+            )
+        }
+
+        composable(
+            route = Screen.TvSeriesSeason.route,
+            arguments = Screen.TvSeriesSeason.arguments
+        ) { backStackEntry ->
+            val seriesId = backStackEntry.arguments?.getString("seriesId") ?: ""
+            val seasonNumber = backStackEntry.arguments?.getInt("seasonNumber") ?: 1
+            com.homeflix.tv.presentation.screens.tvshows.TvSeriesSeasonScreen(
+                seriesId = seriesId,
+                seasonNumber = seasonNumber,
+                navController = navController
+            )
+        }
+
+        composable(
             route = Screen.Details.route,
             arguments = Screen.Details.arguments
         ) { backStackEntry ->
@@ -79,6 +103,27 @@ sealed class Screen(val route: String) {
     object TvShows : Screen("tv-shows")
     object MyList : Screen("my-list")
     object Settings : Screen("settings")
+
+    object TvSeriesDetails : Screen("tv-series/{seriesId}") {
+        fun createRoute(seriesId: String) = "tv-series/$seriesId"
+        val arguments = listOf(
+            androidx.navigation.navArgument("seriesId") {
+                type = androidx.navigation.NavType.StringType
+            }
+        )
+    }
+
+    object TvSeriesSeason : Screen("tv-series/{seriesId}/season/{seasonNumber}") {
+        fun createRoute(seriesId: String, seasonNumber: Int) = "tv-series/$seriesId/season/$seasonNumber"
+        val arguments = listOf(
+            androidx.navigation.navArgument("seriesId") {
+                type = androidx.navigation.NavType.StringType
+            },
+            androidx.navigation.navArgument("seasonNumber") {
+                type = androidx.navigation.NavType.IntType
+            }
+        )
+    }
 
     object Details : Screen("details/{tmdbId}/{mediaType}") {
         fun createRoute(tmdbId: Int, mediaType: String = "MOVIE") = "details/$tmdbId/$mediaType"

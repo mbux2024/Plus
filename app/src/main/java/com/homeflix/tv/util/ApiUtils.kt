@@ -73,4 +73,11 @@ object ApiUtils {
         // Logo not available without a separate TMDB images API call
         return null
     }
+
+    /** Episode thumbnail — used by TvSeriesDetailsScreen */
+    fun getEpisodeThumbnailUrl(episode: com.homeflix.tv.presentation.screens.tvshows.Episode): String {
+        return episode.episodeStillPath
+            ?: episode.thumbnailPath
+            ?: ""
+    }
 }

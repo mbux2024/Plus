@@ -54,7 +54,30 @@ sealed class TvSeriesSeasonUiState {
     data class Success(
         val detail: TmdbMediaDetail,
         val seasonNumber: Int,
-        val episodes: List<TmdbEpisode>
+        val episodes: List<TmdbEpisode>,
+        // Backward compat
+        val series: com.homeflix.tv.presentation.screens.tvshows.TvSeries = detail.media.let { media ->
+            com.homeflix.tv.presentation.screens.tvshows.TvSeries(
+                id = media.id,
+                title = media.title,
+                description = media.overview,
+                rating = media.voteAverage,
+                year = media.year,
+                totalSeasons = media.numberOfSeasons ?: 0,
+                totalEpisodes = media.numberOfEpisodes ?: 0,
+                genres = media.genres.map { it.name },
+                posterPath = media.posterPath,
+                bannerPath = media.backdropPath,
+                tmdbPosterUrl = media.posterUrl(),
+                tmdbBackdropUrl = media.backdropUrl()
+            )
+        },
+        val season: com.homeflix.tv.presentation.screens.tvshows.Season = com.homeflix.tv.presentation.screens.tvshows.Season(
+            id = 0,
+            seasonNumber = seasonNumber,
+            name = "Season $seasonNumber",
+            episodeCount = episodes.size
+        )
     ) : TvSeriesSeasonUiState()
     data class Error(val message: String) : TvSeriesSeasonUiState()
 }

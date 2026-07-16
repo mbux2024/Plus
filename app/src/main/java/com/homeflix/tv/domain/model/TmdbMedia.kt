@@ -94,6 +94,15 @@ data class TmdbMedia(
 
     /** Old UI: media.duration (seconds) — maps to runtime (minutes) * 60 */
     val duration: Int get() = (runtime ?: 0) * 60
+
+    /** Old UI: media.seriesId — not applicable in TMDB list items */
+    val seriesId: Int? get() = null
+
+    /** Old UI: media.seasonNumber — not applicable in TMDB list items */
+    val seasonNumber: Int? get() = null
+
+    /** Old UI: media.episodeNumber — not applicable in TMDB list items */
+    val episodeNumber: Int? get() = null
 }
 
 enum class TmdbMediaType {

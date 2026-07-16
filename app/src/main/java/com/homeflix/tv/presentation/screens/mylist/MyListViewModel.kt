@@ -58,7 +58,7 @@ sealed class MyListUiState {
     object Loading : MyListUiState()
     data class Success(
         val myListItems: List<MyListItem>,
-        val continueWatching: List<com.homeflix.tv.presentation.components.ContinueWatchingItem> = emptyList(),
+        val continueWatching: List<WatchProgress> = emptyList(),
         // Backward compat: old MyListScreen accesses .movies
         val movies: List<TmdbMedia> = emptyList()
     ) : MyListUiState()
