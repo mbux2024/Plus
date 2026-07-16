@@ -51,3 +51,57 @@ data class CatalogRow(
 /** Backward compat: old UI uses "Media" as a type name. */
 typealias Media = CatalogItem
 
+// ─── Extension properties for backward compatibility with old UI composables ───
+// CinematicHero, MediaCard, ContinueWatchingRow etc. access these fields.
+
+/** Old UI: media.description — maps to overview */
+val CatalogItem.description: String? get() = overview
+
+/** Old UI: media.genreNames — not available from list API, return empty */
+val CatalogItem.genreNames: List<String> get() = emptyList()
+
+/** Old UI: media.runtime — not available from list API */
+val CatalogItem.runtime: Int? get() = null
+
+/** Old UI: media.certification — not available from list API */
+val CatalogItem.certification: String? get() = null
+
+/** Old UI: media.quality — not applicable */
+val CatalogItem.quality: String? get() = null
+
+/** Old UI: media.bannerPath — maps to backdropUrl */
+val CatalogItem.bannerPath: String? get() = backdropUrl
+
+/** Old UI: media.tmdbBackdropUrl */
+val CatalogItem.tmdbBackdropUrl: String? get() = backdropUrl
+
+/** Old UI: media.tmdbPosterUrl */
+val CatalogItem.tmdbPosterUrl: String? get() = posterUrl
+
+/** Old UI: media.posterPath */
+val CatalogItem.posterPath: String? get() = posterUrl
+
+/** Old UI: media.backdropPath */
+val CatalogItem.backdropPath: String? get() = backdropUrl
+
+/** Old UI: media.previewPath */
+val CatalogItem.previewPath: String? get() = null
+
+/** Old UI: media.filePath */
+val CatalogItem.filePath: String get() = ""
+
+/** Old UI: media.viewCount */
+val CatalogItem.viewCount: Int get() = 0
+
+/** Old UI: media.duration (seconds) */
+val CatalogItem.duration: Int get() = 0
+
+/** Old UI: media.seriesId */
+val CatalogItem.seriesId: Int? get() = null
+
+/** Old UI: media.seasonNumber */
+val CatalogItem.seasonNumber: Int? get() = null
+
+/** Old UI: media.episodeNumber */
+val CatalogItem.episodeNumber: Int? get() = null
+
