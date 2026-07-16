@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
@@ -47,7 +48,8 @@ fun NetflixSideNavigation(
         NavItem(Icons.Default.Home, "home", "Home"),
         NavItem(Icons.Default.List, "browse", "Browse Movies"),
         NavItem(Icons.Default.BookmarkBorder, "my-list", "My List"),
-        NavItem(Icons.Default.Tv, "tv-shows", "TV Shows")
+        NavItem(Icons.Default.Tv, "tv-shows", "TV Shows"),
+        NavItem(Icons.Default.Settings, "settings", "Settings")
     )
     
     // NETFLIX PRINCIPLE: Each icon is independently focusable

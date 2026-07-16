@@ -20,7 +20,7 @@ data class AppSettings(
     val skipIntroEnabled: Boolean = true,
 
     // ─── Content Discovery ────────────────────────────────────────────────
-    val tmdbApiKey: String = "f7c0dbd2847254de2a1ba9844060dd84",
+    val tmdbApiKey: String = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmN2MwZGJkMjg0NzI1NGRlMmExYmE5ODQ0MDYwZGQ4NCIsIm5iZiI6MTc3ODc5NDkwMy43NjcsInN1YiI6IjZhMDY0MTk3MWJkYmI1OTNkNzIwMjI0MiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.HydrwkZvHc2OIXbCqnqe9sNhHsLt_FXhf98VqI7j4gQ",
     val tmdbEnrichArtwork: Boolean = true,
     val tmdbEnrichBasicInfo: Boolean = true,
     val tmdbEnrichDetails: Boolean = true,
@@ -49,7 +49,8 @@ data class AppSettings(
     val subtitleAddonUrl: String = "https://opensubtitles-v3.strem.io" // Default OpenSubtitles v3
 ) {
     companion object {
-        const val DEFAULT_TMDB_API_KEY = "f7c0dbd2847254de2a1ba9844060dd84"
+        /** TMDB v4 Read Access Token (Bearer auth). Works out of the box. */
+        const val DEFAULT_TMDB_API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmN2MwZGJkMjg0NzI1NGRlMmExYmE5ODQ0MDYwZGQ4NCIsIm5iZiI6MTc3ODc5NDkwMy43NjcsInN1YiI6IjZhMDY0MTk3MWJkYmI1OTNkNzIwMjI0MiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.HydrwkZvHc2OIXbCqnqe9sNhHsLt_FXhf98VqI7j4gQ"
     }
 }
 
