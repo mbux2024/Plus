@@ -57,6 +57,7 @@ fun ContinueWatchingRow(
     onNavigateUp: (() -> Unit)? = null,
     onNavigateDown: (() -> Unit)? = null,
     applyHorizontalPadding: Boolean = true // New parameter to control padding
+    mediaTypeFilter: List<MediaType>? = null,
 ) {
     if (continueWatchingItems.isNullOrEmpty()) {
         return

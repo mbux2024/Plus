@@ -30,7 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.zIndex
-import com.homeflix.tv.data.model.CatalogItemType
+import com.homeflix.tv.data.model.MediaType
 import kotlinx.coroutines.delay
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight

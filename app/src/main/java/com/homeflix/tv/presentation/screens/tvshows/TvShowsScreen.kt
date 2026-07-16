@@ -40,7 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.homeflix.tv.data.model.CatalogItem
-import com.homeflix.tv.data.model.CatalogItemType
+import com.homeflix.tv.data.model.MediaType
 import com.homeflix.tv.presentation.components.NetflixSideNavigation
 import com.homeflix.tv.presentation.components.ContinueWatchingRow
 import com.homeflix.tv.presentation.navigation.Screen

@@ -105,3 +105,7 @@ val CatalogItem.seasonNumber: Int? get() = null
 /** Old UI: media.episodeNumber */
 val CatalogItem.episodeNumber: Int? get() = null
 
+
+/** Old UI: media.genres — returns empty list (genre objects not in list API) */
+data class Genre(val id: Int = 0, val name: String = "")
+val CatalogItem.genres: List<Genre> get() = emptyList()
