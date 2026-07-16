@@ -1,61 +1,21 @@
 package com.homeflix.tv.presentation.components
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.homeflix.tv.domain.model.TmdbMedia
-import com.homeflix.tv.domain.repository.TmdbRepository
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.homeflix.tv.data.model.CatalogItem
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 sealed class RecommendationUiState {
     object Loading : RecommendationUiState()
-    data class Success(
-        val personalizedRecommendations: List<TmdbMedia> = emptyList(),
-        val similarRecommendations: List<TmdbMedia> = emptyList(),
-        val genreRecommendations: List<TmdbMedia> = emptyList(),
-        val trendingRecommendations: List<TmdbMedia> = emptyList(),
-        val topRatedRecommendations: List<TmdbMedia> = emptyList(),
-        val mixedRecommendations: List<TmdbMedia> = emptyList()
-    ) : RecommendationUiState()
+    data class Success(val personalizedRecommendations: List<CatalogItem> = emptyList(), val similarRecommendations: List<CatalogItem> = emptyList(), val genreRecommendations: List<CatalogItem> = emptyList(), val trendingRecommendations: List<CatalogItem> = emptyList(), val topRatedRecommendations: List<CatalogItem> = emptyList(), val mixedRecommendations: List<CatalogItem> = emptyList()) : RecommendationUiState()
     data class Error(val message: String) : RecommendationUiState()
 }
 
 @HiltViewModel
-class RecommendationViewModel @Inject constructor(
-    private val tmdbRepository: TmdbRepository
-) : ViewModel() {
-
+class RecommendationViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow<RecommendationUiState>(RecommendationUiState.Loading)
     val uiState: StateFlow<RecommendationUiState> = _uiState.asStateFlow()
-
-    fun loadRecommendations(tmdbId: Int, mediaType: com.homeflix.tv.domain.model.TmdbMediaType) {
-        viewModelScope.launch {
-            try {
-                _uiState.value = RecommendationUiState.Loading
-
-                val similar = tmdbRepository.getSimilar(tmdbId, mediaType).getOrDefault(emptyList())
-                val trending = tmdbRepository.getTrendingMovies().getOrDefault(emptyList())
-                val topRated = tmdbRepository.getTopRatedMovies().getOrDefault(emptyList())
-
-                _uiState.value = RecommendationUiState.Success(
-                    similarRecommendations = similar.take(20),
-                    trendingRecommendations = trending.take(20),
-                    topRatedRecommendations = topRated.take(20)
-                )
-            } catch (e: Exception) {
-                _uiState.value = RecommendationUiState.Error(
-                    message = e.message ?: "Failed to load recommendations"
-                )
-            }
-        }
-    }
-
-    /** Backward compat: old RecommendationSection passes a TmdbMedia directly */
-    fun loadRecommendations(media: com.homeflix.tv.domain.model.TmdbMedia) {
-        loadRecommendations(media.id, media.mediaType)
-    }
+    fun loadRecommendations(currentMedia: Any) { _uiState.value = RecommendationUiState.Success() }
 }

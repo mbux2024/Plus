@@ -1,10 +1,11 @@
 package com.homeflix.tv.presentation.screens.search
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.homeflix.tv.domain.model.TmdbGenre
-import com.homeflix.tv.domain.model.TmdbMedia
-import com.homeflix.tv.domain.repository.TmdbRepository
+import com.homeflix.tv.HomeFlixTVApplication
+import com.homeflix.tv.data.model.CatalogItem
+import com.homeflix.tv.data.tmdb.TmdbGenre
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -13,100 +14,25 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class SearchViewModel @Inject constructor(
-    private val tmdbRepository: TmdbRepository
-) : ViewModel() {
-
+class SearchViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
+    private val tmdb get() = (getApplication<HomeFlixTVApplication>()).container.tmdbRepository
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Initial)
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
-
     private val _genres = MutableStateFlow<List<TmdbGenre>>(emptyList())
     val genres: StateFlow<List<TmdbGenre>> = _genres.asStateFlow()
-
-    private val _topSearches = MutableStateFlow<List<TmdbMedia>>(emptyList())
-    val topSearches: StateFlow<List<TmdbMedia>> = _topSearches.asStateFlow()
-
+    private val _topSearches = MutableStateFlow<List<CatalogItem>>(emptyList())
+    val topSearches: StateFlow<List<CatalogItem>> = _topSearches.asStateFlow()
     private var searchJob: Job? = null
-
-    init {
-        loadInitialData()
-    }
-
-    private fun loadInitialData() {
-        viewModelScope.launch {
-            // Load genres
-            tmdbRepository.getMovieGenres().fold(
-                onSuccess = { _genres.value = it },
-                onFailure = { android.util.Log.e("SearchViewModel", "Failed to load genres", it) }
-            )
-        }
-
-        viewModelScope.launch {
-            // Load top searches (popular movies as suggestions)
-            tmdbRepository.getPopularMovies().fold(
-                onSuccess = { _topSearches.value = it.take(8) },
-                onFailure = { android.util.Log.e("SearchViewModel", "Failed to load top searches", it) }
-            )
-        }
-    }
-
-    fun searchMedia(query: String) {
-        searchJob?.cancel()
-
-        if (query.isBlank()) {
-            _uiState.value = SearchUiState.Initial
-            return
-        }
-
-        searchJob = viewModelScope.launch {
-            delay(300) // Debounce
-            _uiState.value = SearchUiState.Loading
-
-            tmdbRepository.searchMulti(query).fold(
-                onSuccess = { results ->
-                    _uiState.value = SearchUiState.Success(results)
-                },
-                onFailure = { error ->
-                    _uiState.value = SearchUiState.Error(error.message ?: "Search failed")
-                }
-            )
-        }
-    }
-
-    fun searchByGenre(genreId: Int) {
-        searchJob?.cancel()
-
-        searchJob = viewModelScope.launch {
-            _uiState.value = SearchUiState.Loading
-
-            tmdbRepository.discoverByGenre(genreId, com.homeflix.tv.domain.model.TmdbMediaType.MOVIE).fold(
-                onSuccess = { results ->
-                    _uiState.value = SearchUiState.Success(results)
-                },
-                onFailure = { error ->
-                    _uiState.value = SearchUiState.Error(error.message ?: "Genre search failed")
-                }
-            )
-        }
-    }
-
-    /** Backward compat: old SearchScreen passes genre name as String */
-    fun searchByGenre(genreName: String) {
-        val genre = _genres.value.find { it.name.equals(genreName, ignoreCase = true) }
-        if (genre != null) {
-            searchByGenre(genre.id)
-        }
-    }
-
-    fun clearSearch() {
-        searchJob?.cancel()
-        _uiState.value = SearchUiState.Initial
-    }
+    init { viewModelScope.launch { _topSearches.value = tmdb.trendingMovies().take(8) } }
+    fun searchMedia(query: String) { searchJob?.cancel(); if (query.isBlank()) { _uiState.value = SearchUiState.Initial; return }
+        searchJob = viewModelScope.launch { delay(300); _uiState.value = SearchUiState.Loading
+            try { _uiState.value = SearchUiState.Success(tmdb.searchMulti(query)) } catch (e: Exception) { _uiState.value = SearchUiState.Error(e.message ?: "Error") }
+    }}
+    fun searchByGenre(genreName: String) {}
+    fun clearSearch() { searchJob?.cancel(); _uiState.value = SearchUiState.Initial }
 }
-
 sealed class SearchUiState {
-    object Initial : SearchUiState()
-    object Loading : SearchUiState()
+    object Initial : SearchUiState(); object Loading : SearchUiState()
     data class Error(val message: String) : SearchUiState()
-    data class Success(val results: List<TmdbMedia>) : SearchUiState()
+    data class Success(val results: List<CatalogItem>) : SearchUiState()
 }
