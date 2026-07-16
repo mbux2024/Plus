@@ -243,7 +243,7 @@ fun TvShowsScreen(
                                         navController.navigate(Screen.Details.createRoute(media.id.toString()))
                                     },
                                     focusRequester = continueWatchingFocusRequester,
-                                    mediaTypeFilter = setOf(
+                                    mediaTypeFilter = listOf(
                                     ),
                                     applyHorizontalPadding = false,
                                     modifier = Modifier.padding(bottom = 24.dp, start = 32.dp)
