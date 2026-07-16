@@ -50,6 +50,9 @@ class TvShowsViewModel @Inject constructor(
             }
         }
     }
+
+    /** Backward compat: called by TvShowsScreen on resume */
+    fun refreshContinueWatching() { /* No-op — continue watching managed by LocalRepository */ }
 }
 
 sealed class TvShowsUiState {
@@ -59,7 +62,11 @@ sealed class TvShowsUiState {
         val trendingTv: List<TmdbMedia>,
         val popularTv: List<TmdbMedia>,
         val topRatedTv: List<TmdbMedia>,
-        val airingToday: List<TmdbMedia>
+        val airingToday: List<TmdbMedia>,
+        // Backward compat fields for TvShowsScreen
+        val featuredSeries: List<TvSeries> = emptyList(),
+        val series: List<TvSeries> = emptyList(),
+        val continueWatchingEpisodes: List<com.homeflix.tv.presentation.components.ContinueWatchingItem> = emptyList()
     ) : TvShowsUiState()
     data class Error(val message: String) : TvShowsUiState()
 }

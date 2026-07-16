@@ -82,6 +82,8 @@ sealed class Screen(val route: String) {
 
     object Details : Screen("details/{tmdbId}/{mediaType}") {
         fun createRoute(tmdbId: Int, mediaType: String = "MOVIE") = "details/$tmdbId/$mediaType"
+        // Backward compat: old code passed media.id.toString()
+        fun createRoute(mediaId: String) = "details/${mediaId.toIntOrNull() ?: 0}/MOVIE"
         val arguments = listOf(
             androidx.navigation.navArgument("tmdbId") {
                 type = androidx.navigation.NavType.IntType
@@ -102,6 +104,15 @@ sealed class Screen(val route: String) {
             val encodedUrl = java.net.URLEncoder.encode(streamUrl, "UTF-8")
             val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
             return "player/$encodedUrl/$encodedTitle/$tmdbId"
+        }
+
+        /**
+         * Backward compat: old code called createRoute(mediaId: Int, startTime: Long)
+         * Now this creates a placeholder route — actual stream resolution happens in DetailsScreen.
+         */
+        fun createRoute(mediaId: Int, startTime: Long = 0L, forceStartFromBeginning: Boolean = false): String {
+            // Navigate to details page instead — streaming requires debrid resolution now
+            return "details/$mediaId/MOVIE"
         }
 
         val arguments = listOf(

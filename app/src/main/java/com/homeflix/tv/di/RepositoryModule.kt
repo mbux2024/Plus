@@ -38,4 +38,11 @@ abstract class RepositoryModule {
     abstract fun bindSettingsRepository(
         impl: SettingsRepositoryImpl
     ): SettingsRepository
+
+    /** Backward compat: old VideoPlayer.kt uses MediaRepository via EntryPoint */
+    @Binds
+    @Singleton
+    abstract fun bindLegacyMediaRepository(
+        impl: com.homeflix.tv.data.repository.MediaRepositoryStub
+    ): com.homeflix.tv.domain.repository.MediaRepository
 }

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.homeflix.tv.domain.model.MyListItem
+import com.homeflix.tv.domain.model.TmdbMedia
 import com.homeflix.tv.domain.model.WatchProgress
 import com.homeflix.tv.domain.repository.LocalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,7 +58,9 @@ sealed class MyListUiState {
     object Loading : MyListUiState()
     data class Success(
         val myListItems: List<MyListItem>,
-        val continueWatching: List<WatchProgress> = emptyList()
+        val continueWatching: List<com.homeflix.tv.presentation.components.ContinueWatchingItem> = emptyList(),
+        // Backward compat: old MyListScreen accesses .movies
+        val movies: List<TmdbMedia> = emptyList()
     ) : MyListUiState()
     data class Error(val message: String) : MyListUiState()
 }

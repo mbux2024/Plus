@@ -14,9 +14,12 @@ import javax.inject.Inject
 sealed class RecommendationUiState {
     object Loading : RecommendationUiState()
     data class Success(
+        val personalizedRecommendations: List<TmdbMedia> = emptyList(),
         val similarRecommendations: List<TmdbMedia> = emptyList(),
+        val genreRecommendations: List<TmdbMedia> = emptyList(),
         val trendingRecommendations: List<TmdbMedia> = emptyList(),
-        val topRatedRecommendations: List<TmdbMedia> = emptyList()
+        val topRatedRecommendations: List<TmdbMedia> = emptyList(),
+        val mixedRecommendations: List<TmdbMedia> = emptyList()
     ) : RecommendationUiState()
     data class Error(val message: String) : RecommendationUiState()
 }
@@ -49,5 +52,10 @@ class RecommendationViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /** Backward compat: old RecommendationSection passes a TmdbMedia directly */
+    fun loadRecommendations(media: com.homeflix.tv.domain.model.TmdbMedia) {
+        loadRecommendations(media.id, media.mediaType)
     }
 }

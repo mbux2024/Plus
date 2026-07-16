@@ -90,6 +90,14 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    /** Backward compat: old SearchScreen passes genre name as String */
+    fun searchByGenre(genreName: String) {
+        val genre = _genres.value.find { it.name.equals(genreName, ignoreCase = true) }
+        if (genre != null) {
+            searchByGenre(genre.id)
+        }
+    }
+
     fun clearSearch() {
         searchJob?.cancel()
         _uiState.value = SearchUiState.Initial

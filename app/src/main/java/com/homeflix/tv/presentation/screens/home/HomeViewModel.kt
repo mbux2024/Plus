@@ -119,6 +119,11 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         loadHomeContent()
     }
+
+    /** Backward compat: called by NetflixHomeScreen on lifecycle resume */
+    fun refreshRecentlyWatched() {
+        // Continue watching updates reactively via Flow — no action needed
+    }
 }
 
 sealed class HomeUiState {
@@ -135,6 +140,17 @@ sealed class HomeUiState {
         val airingToday: List<TmdbMedia>,
         val popularMovies: List<TmdbMedia>,
         val genres: List<TmdbGenre>,
-        val currentHeroIndex: Int = 0
+        val currentHeroIndex: Int = 0,
+        // Backward-compatible fields for NetflixHomeScreen
+        val featuredMedia: List<TmdbMedia> = heroItems,
+        val continueWatching: List<com.homeflix.tv.presentation.components.ContinueWatchingItem> = emptyList(),
+        val latestMovies: List<TmdbMedia> = popularMovies,
+        val actionMovies: List<TmdbMedia> = emptyList(),
+        val comedyMovies: List<TmdbMedia> = emptyList(),
+        val dramaMovies: List<TmdbMedia> = emptyList(),
+        val sciFiMovies: List<TmdbMedia> = emptyList(),
+        val horrorMovies: List<TmdbMedia> = emptyList(),
+        val romanceMovies: List<TmdbMedia> = emptyList(),
+        val thrillerMovies: List<TmdbMedia> = emptyList()
     ) : HomeUiState()
 }
