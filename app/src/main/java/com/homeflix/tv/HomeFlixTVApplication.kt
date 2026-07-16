@@ -1,25 +1,47 @@
 package com.homeflix.tv
 
 import android.app.Application
-import dagger.hilt.android.HiltAndroidApp
+import android.os.Build
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+import com.homeflix.tv.di.AppContainer
+import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class HomeFlixTVApplication : Application(), ImageLoaderFactory {
-    
+
+    /** Manual DI container (mirrors MyBuild's AppContainer architecture). */
+    lateinit var container: AppContainer
+        private set
+
     override fun onCreate() {
         super.onCreate()
-
-        // Initialize image cache on app startup
-        com.homeflix.tv.util.ImageCache.getImageLoader(this)
-
-        // Pick the server before the first screen loads: LAN IP when
-        // reachable, public domain otherwise (2.5s probe, off main thread)
-        Thread { com.homeflix.tv.util.ServerConfig.probe() }.start()
+        container = AppContainer(this)
     }
-    
-    override fun newImageLoader(): ImageLoader {
-        return com.homeflix.tv.util.ImageCache.getImageLoader(this)
-    }
+
+    override fun newImageLoader(): ImageLoader =
+        ImageLoader.Builder(this)
+            .components {
+                if (Build.VERSION.SDK_INT >= 28) add(ImageDecoderDecoder.Factory())
+                else add(GifDecoder.Factory())
+            }
+            .allowRgb565(true)
+            .crossfade(true)
+            .respectCacheHeaders(false)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.20)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(150L * 1024 * 1024)
+                    .build()
+            }
+            .build()
 }
