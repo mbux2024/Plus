@@ -20,7 +20,7 @@ data class AppSettings(
     val skipIntroEnabled: Boolean = true,
 
     // ─── Content Discovery ────────────────────────────────────────────────
-    val tmdbApiKey: String = "",
+    val tmdbApiKey: String = "f7c0dbd2847254de2a1ba9844060dd84",
     val tmdbEnrichArtwork: Boolean = true,
     val tmdbEnrichBasicInfo: Boolean = true,
     val tmdbEnrichDetails: Boolean = true,

@@ -7,11 +7,10 @@ import okhttp3.Response
 import javax.inject.Inject
 
 /**
- * OkHttp interceptor that adds the TMDB API key as a Bearer token
- * to all TMDB API requests.
+ * OkHttp interceptor that adds the TMDB API key to all TMDB API requests.
  *
- * The TMDB v3 API supports both query-param (?api_key=...) and
- * Bearer token auth. We use Bearer for cleaner URLs.
+ * Uses query-parameter style (?api_key=...) which works with both v3 API keys
+ * and read access tokens. The key is read from Settings (pre-configured with default).
  */
 class TmdbAuthInterceptor @Inject constructor(
     private val settingsRepository: SettingsRepository
@@ -21,12 +20,16 @@ class TmdbAuthInterceptor @Inject constructor(
         val apiKey = runBlocking { settingsRepository.getSettings().tmdbApiKey }
 
         val request = if (apiKey.isNotBlank()) {
+            // Add api_key as query parameter (works with v3 API keys)
+            val originalUrl = chain.request().url
+            val newUrl = originalUrl.newBuilder()
+                .addQueryParameter("api_key", apiKey)
+                .build()
             chain.request().newBuilder()
-                .addHeader("Authorization", "Bearer $apiKey")
+                .url(newUrl)
                 .addHeader("Accept", "application/json")
                 .build()
         } else {
-            // If no API key set, still proceed (will get 401 from TMDB)
             chain.request().newBuilder()
                 .addHeader("Accept", "application/json")
                 .build()
