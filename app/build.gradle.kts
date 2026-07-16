@@ -103,10 +103,13 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.loggingInterceptor)
     implementation(libs.gson)
+    // kotlinx-serialization Retrofit converter (used by MyBuild data layer)
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
 
-    // Image loading (Coil with GIF support for service logos)
+    // Image loading (Coil with GIF + SVG support for service logos + rating icons)
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
+    implementation("io.coil-kt:coil-svg:2.7.0")
 
     // Media3 / ExoPlayer (secondary player engine)
     implementation(libs.androidx.media3.exoplayer)
@@ -114,6 +117,9 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
+    implementation("androidx.media3:media3-exoplayer-smoothstreaming:1.4.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.4.1")
+    implementation("androidx.media3:media3-common:1.4.1")
 
     // MPV player engine (primary — bundles native .so, no NDK build)
     implementation(libs.mpv.android)
