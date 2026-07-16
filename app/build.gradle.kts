@@ -140,6 +140,10 @@ dependencies {
     // On-device web server (addon management from phone browser)
     implementation(libs.nanohttpd)
 
+    // In-app YouTube trailer player
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
