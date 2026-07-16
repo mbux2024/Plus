@@ -1,4 +1,5 @@
 package com.homeflix.tv.presentation.screens.home
+import com.homeflix.tv.presentation.navigation.Routes
 import com.homeflix.tv.data.model.*
 
 import androidx.compose.foundation.background
@@ -197,10 +198,10 @@ fun NetflixHomeScreen(
                                         mediaList = moviesOnly,
                                         currentIndex = safeIndex,
                                         onPlayClick = { media ->
-                                            navController.navigate(Screen.VideoPlayer.createRoute(media.id))
+                                            navController.navigate(Routes.player(com.homeflix.tv.data.model.MediaType.MOVIE, media.id, title = media.title))
                                         },
                                         onDetailsClick = { media ->
-                                            navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                            navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                         },
                                         onIndexChange = { newIndex ->
                                             currentHeroIndex = newIndex
@@ -234,7 +235,7 @@ fun NetflixHomeScreen(
                                         navController.navigate(Screen.VideoPlayer.createRoute(media.id, startTime = startTimeMs))
                                     },
                                     onInfo = { media ->
-                                        navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                        navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                     },
                                     focusRequester = firstRowFocusRequester,
                                     modifier = Modifier.padding(bottom = 24.dp)
@@ -249,7 +250,7 @@ fun NetflixHomeScreen(
                                     title = "Top 10 on HomeFlix",
                                     mediaList = currentState.popularMovies,
                                     onMediaClick = { media ->
-                                        navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                        navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                     },
                                     focusRequester = if (currentState.continueWatching.isEmpty()) firstRowFocusRequester else null,
                                     modifier = Modifier.padding(bottom = 28.dp)
@@ -264,7 +265,7 @@ fun NetflixHomeScreen(
                                     title = "Latest Movies",
                                     mediaList = currentState.latestMovies,
                                     onMediaClick = { media ->
-                                        navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                        navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                     },
                                     focusRequester = latestMoviesFocusRequester,
                                     modifier = Modifier.padding(bottom = 28.dp)
@@ -279,7 +280,7 @@ fun NetflixHomeScreen(
                                     title = "Trending Now",
                                     mediaList = currentState.trendingMovies,
                                     onMediaClick = { media ->
-                                        navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                        navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                     },
                                     modifier = Modifier.padding(bottom = 24.dp)
                                 )
@@ -293,7 +294,7 @@ fun NetflixHomeScreen(
                                     title = "Action",
                                     mediaList = currentState.actionMovies,
                                     onMediaClick = { media ->
-                                        navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                        navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                     },
                                     modifier = Modifier.padding(bottom = 24.dp)
                                 )
@@ -307,7 +308,7 @@ fun NetflixHomeScreen(
                                     title = "Drama",
                                     mediaList = currentState.dramaMovies,
                                     onMediaClick = { media ->
-                                        navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                        navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                     },
                                     modifier = Modifier.padding(bottom = 24.dp)
                                 )
@@ -321,7 +322,7 @@ fun NetflixHomeScreen(
                                     title = "Sci-Fi",
                                     mediaList = currentState.sciFiMovies,
                                     onMediaClick = { media ->
-                                        navController.navigate(Screen.Details.createRoute(media.id.toString()))
+                                        navController.navigate(Routes.detail(com.homeflix.tv.data.model.MediaType.MOVIE, media.id))
                                     },
                                     modifier = Modifier.padding(bottom = 24.dp)
                                 )
